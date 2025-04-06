@@ -1,9 +1,6 @@
 streamlit
 pandas
-numpy
-matplotlib
-openpyxl
-pydeck
-fpdf
 plotly
-kaleido
+seaborn
+matplotlib
+fpdf
