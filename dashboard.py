@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import seaborn as sns
+import matplotlib.pyplot as plt
 from fpdf import FPDF
 import os
 
@@ -52,22 +54,16 @@ fig = px.scatter_map(
 )
 st.plotly_chart(fig)
 
-# Heatmap for score comparison
+# Heatmap instead of Radar Chart
 if selected_sa3s:
-    st.subheader("\ud83d\udd25 Score Comparison Heatmap")
+    st.subheader("\ud83d\udd25 Score Heatmap Comparison")
     score_columns = ["Median Price", "12M Growth (%)", "Yield (%)", "Rent Change (%)", "Buy Affordability", "Rent Affordability", "10Y Growth (PA)"]
-    heatmap_data = df[df['SA3'].isin(selected_sa3s)][['SA3'] + score_columns].set_index('SA3')
+    filtered_df = df[df['SA3'].isin(selected_sa3s)].set_index("SA3")[score_columns]
 
-    fig_heatmap = px.imshow(
-        heatmap_data,
-        labels=dict(color="Value"),
-        x=score_columns,
-        y=heatmap_data.index,
-        color_continuous_scale="Blues",
-        aspect="auto",
-        text_auto=True
-    )
-    st.plotly_chart(fig_heatmap)
+    fig, ax = plt.subplots(figsize=(10, len(selected_sa3s) * 0.5 + 2))
+    sns.heatmap(filtered_df, annot=True, fmt=".1f", cmap="coolwarm", linewidths=0.5, ax=ax)
+    plt.title("SA3 Comparison Heatmap")
+    st.pyplot(fig)
 
 # PDF Report Generation
 if selected_sa3s:
@@ -86,7 +82,7 @@ if selected_sa3s:
         pdf.cell(200, 10, txt=f"PropwealthNext Report - {sa3_data['SA3']}", ln=True, align='C')
         pdf.ln(10)
 
-        for col in ["Median Price", "12M Growth (%)", "Yield (%)", "Rent Change (%)", "Buy Affordability", "Rent Affordability", "10Y Growth (PA)"]:
+        for col in score_columns:
             pdf.cell(200, 10, txt=f"{col}: {sa3_data[col]}", ln=True)
 
         pdf.output(filename)
