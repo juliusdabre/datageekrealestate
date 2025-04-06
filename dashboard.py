@@ -9,13 +9,13 @@ df = pd.read_csv("sa3_investment_data.csv")
 # Branding Header
 st.markdown("""
     <div style='text-align: center; padding: 10px;'>
-        <h1 style='color: #2E86C1; font-size: 48px;'>Counciltrends</h1>
+        <h1 style='color: #FFC0CB; font-size: 48px;'>SA3Trends</h1>
         <h4 style='color: #555;'>Regional Investment Intelligence Dashboard</h4>
     </div>
 """, unsafe_allow_html=True)
 
 # Sidebar for SA3 selection
-selected_sa3 = st.sidebar.selectbox("📍 Select an SA3 Region", df["SA3"].unique())
+selected_sa3 = st.sidebar.selectbox(" Select an SA3 Region", df["SA3"].unique())
 
 # Filter data
 sa3 = df[df["SA3"] == selected_sa3].iloc[0]
