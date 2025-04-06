@@ -1,4 +1,5 @@
-import streamlit as st
+# Retrieve the latest content from the canvas document and write it to file
+dashboard_code = '''import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -18,7 +19,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Sidebar for SA3 selection
-selected_sa3s = st.sidebar.multiselect("\ud83d\udccd Select SA3 Region(s)", df["SA3"].unique())
+selected_sa3s = st.sidebar.multiselect("📍 Select SA3 Region(s)", df["SA3"].unique())
 
 # Show KPIs only for the first selected SA3
 if selected_sa3s:
@@ -26,19 +27,19 @@ if selected_sa3s:
 
     # KPIs
     col1, col2, col3 = st.columns(3)
-    col1.metric("\ud83d\udcb0 Median Price", f"${int(sa3['Median Price']):,}")
-    col2.metric("\ud83d\udcc8 12M Growth", f"{sa3['12M Growth (%)']}%")
-    col3.metric("\ud83d\udcb8 Yield", f"{sa3['Yield (%)']}%")
+    col1.metric("💰 Median Price", f"${int(sa3['Median Price']):,}")
+    col2.metric("📈 12M Growth", f"{sa3['12M Growth (%)']}%")
+    col3.metric("💸 Yield", f"{sa3['Yield (%)']}%")
 
     col4, col5, col6 = st.columns(3)
-    col4.metric("\ud83d\udcca Rent Change", f"{sa3['Rent Change (%)']}%")
-    col5.metric("\ud83e\uddf6 Buy Affordability", f"{sa3['Buy Affordability']} yrs")
-    col6.metric("\ud83d\udcc9 Rent Affordability", f"{sa3['Rent Affordability']}%")
+    col4.metric("📊 Rent Change", f"{sa3['Rent Change (%)']}%")
+    col5.metric("🧮 Buy Affordability", f"{sa3['Buy Affordability']} yrs")
+    col6.metric("📉 Rent Affordability", f"{sa3['Rent Affordability']}%")
 
-    st.metric("\ud83d\udcc8 10Y Growth (PA)", f"{sa3['10Y Growth (PA)']}%")
+    st.metric("📈 10Y Growth (PA)", f"{sa3['10Y Growth (PA)']}%")
 
 # Map visualization
-st.subheader("\ud83d\uddfa SA3 Location Map")
+st.subheader("🗺 SA3 Location Map")
 fig = px.scatter_map(
     df,
     lat="Latitude",
@@ -71,7 +72,7 @@ def render_radar_chart(df, selected_sa3s, score_columns):
 
 # Radar Chart
 if selected_sa3s:
-    st.subheader("\ud83d\udd2c Score Comparison Radar Chart")
+    st.subheader("🔬 Score Comparison Radar Chart")
     score_columns = ["Median Price", "12M Growth (%)", "Yield (%)", "Rent Change (%)", "Buy Affordability", "Rent Affordability", "10Y Growth (PA)"]
     radar_fig = render_radar_chart(df, selected_sa3s, score_columns)
     st.plotly_chart(radar_fig)
@@ -104,7 +105,7 @@ if selected_sa3s:
         generate_pdf(row, filename)
         with open(filename, "rb") as f:
             st.download_button(
-                label=f"\ud83d\udcc4 Download PDF Report - {sa3}",
+                label=f"📄 Download PDF Report - {sa3}",
                 data=f,
                 file_name=filename,
                 mime="application/pdf"
@@ -113,4 +114,14 @@ if selected_sa3s:
 
 # Download full data
 csv = df.to_csv(index=False)
-st.download_button("\ud83d\udcc5 Download Full Dataset", csv, "sa3_investment_data.csv", "text/csv")
+st.download_button("🗃 Download Full Dataset", csv, "sa3_investment_data.csv", "text/csv")
+'''
+
+# Write to file and zip it
+with open("/mnt/data/dashboard.py", "w") as f:
+    f.write(dashboard_code)
+
+with zipfile.ZipFile("/mnt/data/propwealthnext_dashboard_final.zip", "w") as zipf:
+    zipf.write("/mnt/data/dashboard.py", arcname="dashboard.py")
+
+"/mnt/data/propwealthnext_dashboard_final.zip"
