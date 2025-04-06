@@ -1,7 +1,9 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from fpdf import FPDF
+import os
 
 # Load the data
 df = pd.read_csv("sa3_investment_data.csv")
@@ -9,33 +11,35 @@ df = pd.read_csv("sa3_investment_data.csv")
 # Branding Header
 st.markdown("""
     <div style='text-align: center; padding: 10px;'>
-        <h1 style='color: #FFC0CB; font-size: 48px;'>SA3Trends</h1>
+        <img src='https://raw.githubusercontent.com/yourusername/assets/main/propwealthnext_logo.png' width='150'>
+        <h1 style='color: #2E86C1; font-size: 48px;'>PropwealthNext</h1>
         <h4 style='color: #555;'>Regional Investment Intelligence Dashboard</h4>
     </div>
 """, unsafe_allow_html=True)
 
 # Sidebar for SA3 selection
-selected_sa3 = st.sidebar.selectbox(" Select an SA3 Region", df["SA3"].unique())
+selected_sa3s = st.sidebar.multiselect("\ud83d\udccd Select SA3 Region(s)", df["SA3"].unique())
 
-# Filter data
-sa3 = df[df["SA3"] == selected_sa3].iloc[0]
+# Show KPIs only for the first selected SA3
+if selected_sa3s:
+    sa3 = df[df["SA3"] == selected_sa3s[0]].iloc[0]
 
-# KPIs
-col1, col2, col3 = st.columns(3)
-col1.metric("💰 Median Price", f"${int(sa3['Median Price']):,}")
-col2.metric("📈 12M Growth", f"{sa3['12M Growth (%)']}%")
-col3.metric("💸 Yield", f"{sa3['Yield (%)']}%")
+    # KPIs
+    col1, col2, col3 = st.columns(3)
+    col1.metric("\ud83d\udcb0 Median Price", f"${int(sa3['Median Price']):,}")
+    col2.metric("\ud83d\udcc8 12M Growth", f"{sa3['12M Growth (%)']}%")
+    col3.metric("\ud83d\udcb8 Yield", f"{sa3['Yield (%)']}%")
 
-col4, col5, col6 = st.columns(3)
-col4.metric("📊 Rent Change", f"{sa3['Rent Change (%)']}%")
-col5.metric("🧮 Buy Affordability", f"{sa3['Buy Affordability']} yrs")
-col6.metric("📉 Rent Affordability", f"{sa3['Rent Affordability']}%")
+    col4, col5, col6 = st.columns(3)
+    col4.metric("\ud83d\udcca Rent Change", f"{sa3['Rent Change (%)']}%")
+    col5.metric("\ud83e\uddf6 Buy Affordability", f"{sa3['Buy Affordability']} yrs")
+    col6.metric("\ud83d\udcc9 Rent Affordability", f"{sa3['Rent Affordability']}%")
 
-st.metric("📈 10Y Growth (PA)", f"{sa3['10Y Growth (PA)']}%")
+    st.metric("\ud83d\udcc8 10Y Growth (PA)", f"{sa3['10Y Growth (PA)']}%")
 
 # Map visualization
-st.subheader("🗺 SA3 Location Map")
-fig = px.scatter_mapbox(
+st.subheader("\ud83d\uddfa SA3 Location Map")
+fig = px.scatter_map(
     df,
     lat="Latitude",
     lon="Longitude",
@@ -46,48 +50,67 @@ fig = px.scatter_mapbox(
     zoom=4,
     height=500
 )
-fig.update_layout(mapbox_style="open-street-map")
 st.plotly_chart(fig)
 
-# Download full data
-#csv = df.to_csv(index=False)
-#st.download_button("📥 Download Full Dataset", csv, "sa3_investment_data.csv", "text/csv")
-
-# Plot radar chart
-if selected_sa3s:
+# Radar Chart function
+def render_radar_chart(df, selected_sa3s, score_columns):
     fig = go.Figure()
     for sa3 in selected_sa3s:
-        row = filtered_df[filtered_df['SA3'] == sa3][score_columns].iloc[0]
+        row = df[df['SA3'] == sa3][score_columns].iloc[0]
         fig.add_trace(go.Scatterpolar(
-            r=row.values,
+            r=row.values.tolist(),
             theta=score_columns,
             fill='toself',
             name=sa3
         ))
     fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[1, 5])),
-        showlegend=True,
-        title="Radar Chart: SA3 Comparison"
+        polar=dict(radialaxis=dict(visible=True)),
+        showlegend=True
     )
-    st.plotly_chart(fig, use_container_width=True)
+    return fig
 
-    # Download CSV
-    csv_data = filtered_df[filtered_df['SA3'].isin(selected_sa3s)][['SA3'] + score_columns]
-    csv = csv_data.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Selected Data as CSV",
-        data=csv,
-        file_name='selected_sa3s.csv',
-        mime='text/csv'
-    )
+# Radar Chart
+if selected_sa3s:
+    st.subheader("\ud83d\udd2c Score Comparison Radar Chart")
+    score_columns = ["Median Price", "12M Growth (%)", "Yield (%)", "Rent Change (%)", "Buy Affordability", "Rent Affordability", "10Y Growth (PA)"]
+    radar_fig = render_radar_chart(df, selected_sa3s, score_columns)
+    st.plotly_chart(radar_fig)
 
-    # Download Radar Chart as PDF
-    pdf_bytes = pio.to_image(fig, format='pdf')
-    st.download_button(
-        label="📄 Download Radar Chart as PDF",
-        data=pdf_bytes,
-        file_name='radar_chart.pdf',
-        mime='application/pdf'
-    )
-else:
-    st.info("Please select SA3 regions from the list above.")
+# PDF Report Generation
+if selected_sa3s:
+    def generate_pdf(sa3_data, filename):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.set_text_color(40, 40, 40)
+
+        # Add logo (optional)
+        logo_path = "propwealthnext_logo.png"
+        if os.path.exists(logo_path):
+            pdf.image(logo_path, x=10, y=8, w=30)
+            pdf.ln(20)
+
+        pdf.cell(200, 10, txt=f"PropwealthNext Report - {sa3_data['SA3']}", ln=True, align='C')
+        pdf.ln(10)
+
+        for col in ["Median Price", "12M Growth (%)", "Yield (%)", "Rent Change (%)", "Buy Affordability", "Rent Affordability", "10Y Growth (PA)"]:
+            pdf.cell(200, 10, txt=f"{col}: {sa3_data[col]}", ln=True)
+
+        pdf.output(filename)
+
+    for sa3 in selected_sa3s:
+        row = df[df['SA3'] == sa3].iloc[0]
+        filename = f"report_{sa3.replace(' ', '_')}.pdf"
+        generate_pdf(row, filename)
+        with open(filename, "rb") as f:
+            st.download_button(
+                label=f"\ud83d\udcc4 Download PDF Report - {sa3}",
+                data=f,
+                file_name=filename,
+                mime="application/pdf"
+            )
+        os.remove(filename)
+
+# Download full data
+csv = df.to_csv(index=False)
+st.download_button("\ud83d\udcc5 Download Full Dataset", csv, "sa3_investment_data.csv", "text/csv")
