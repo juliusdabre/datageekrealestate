@@ -52,3 +52,42 @@ st.plotly_chart(fig)
 # Download full data
 #csv = df.to_csv(index=False)
 #st.download_button("📥 Download Full Dataset", csv, "sa3_investment_data.csv", "text/csv")
+
+# Plot radar chart
+if selected_sa3s:
+    fig = go.Figure()
+    for sa3 in selected_sa3s:
+        row = filtered_df[filtered_df['SA3'] == sa3][score_columns].iloc[0]
+        fig.add_trace(go.Scatterpolar(
+            r=row.values,
+            theta=score_columns,
+            fill='toself',
+            name=sa3
+        ))
+    fig.update_layout(
+        polar=dict(radialaxis=dict(visible=True, range=[1, 5])),
+        showlegend=True,
+        title="Radar Chart: SA3 Comparison"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Download CSV
+    csv_data = filtered_df[filtered_df['SA3'].isin(selected_sa3s)][['SA3'] + score_columns]
+    csv = csv_data.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Download Selected Data as CSV",
+        data=csv,
+        file_name='selected_sa3s.csv',
+        mime='text/csv'
+    )
+
+    # Download Radar Chart as PDF
+    pdf_bytes = pio.to_image(fig, format='pdf')
+    st.download_button(
+        label="📄 Download Radar Chart as PDF",
+        data=pdf_bytes,
+        file_name='radar_chart.pdf',
+        mime='application/pdf'
+    )
+else:
+    st.info("Please select SA3 regions from the list above.")
