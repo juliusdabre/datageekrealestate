@@ -9,7 +9,7 @@ df = pd.read_csv("sa3_investment_data.csv")
 # Branding Header
 st.markdown("""
     <div style='text-align: center; padding: 10px;'>
-        <h1 style='color: #2E86C1; font-size: 48px;'>PropwealthNext</h1>
+        <h1 style='color: #2E86C1; font-size: 48px;'>Counciltrends</h1>
         <h4 style='color: #555;'>Regional Investment Intelligence Dashboard</h4>
     </div>
 """, unsafe_allow_html=True)
@@ -50,5 +50,5 @@ fig.update_layout(mapbox_style="open-street-map")
 st.plotly_chart(fig)
 
 # Download full data
-csv = df.to_csv(index=False)
-st.download_button("📥 Download Full Dataset", csv, "sa3_investment_data.csv", "text/csv")
+#csv = df.to_csv(index=False)
+#st.download_button("📥 Download Full Dataset", csv, "sa3_investment_data.csv", "text/csv")
