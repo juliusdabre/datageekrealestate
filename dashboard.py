@@ -52,30 +52,22 @@ fig = px.scatter_map(
 )
 st.plotly_chart(fig)
 
-# Spider Chart (Radar Chart alternative)
-def render_spider_chart(df, selected_sa3s, score_columns):
-    fig = go.Figure()
-    for sa3 in selected_sa3s:
-        row = df[df['SA3'] == sa3][score_columns].iloc[0]
-        fig.add_trace(go.Scatterpolar(
-            r=row.values.tolist() + [row.values.tolist()[0]],  # loop the values
-            theta=score_columns + [score_columns[0]],  # loop the axis
-            fill='toself',
-            name=sa3
-        ))
-    fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True)),
-        showlegend=True,
-        title="SA3 Score Spider Map"
-    )
-    return fig
-
-# Spider Chart
+# Heatmap for score comparison
 if selected_sa3s:
-    st.subheader("\ud83d\udd2c Score Comparison Spider Map")
+    st.subheader("\ud83d\udd25 Score Comparison Heatmap")
     score_columns = ["Median Price", "12M Growth (%)", "Yield (%)", "Rent Change (%)", "Buy Affordability", "Rent Affordability", "10Y Growth (PA)"]
-    spider_fig = render_spider_chart(df, selected_sa3s, score_columns)
-    st.plotly_chart(spider_fig)
+    heatmap_data = df[df['SA3'].isin(selected_sa3s)][['SA3'] + score_columns].set_index('SA3')
+
+    fig_heatmap = px.imshow(
+        heatmap_data,
+        labels=dict(color="Value"),
+        x=score_columns,
+        y=heatmap_data.index,
+        color_continuous_scale="Blues",
+        aspect="auto",
+        text_auto=True
+    )
+    st.plotly_chart(fig_heatmap)
 
 # PDF Report Generation
 if selected_sa3s:
