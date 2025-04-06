@@ -1,5 +1,5 @@
-# Retrieve the latest content from the canvas document and write it to file
-dashboard_code = '''import streamlit as st
+
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -115,13 +115,3 @@ if selected_sa3s:
 # Download full data
 csv = df.to_csv(index=False)
 st.download_button("🗃 Download Full Dataset", csv, "sa3_investment_data.csv", "text/csv")
-'''
-
-# Write to file and zip it
-with open("/mnt/data/dashboard.py", "w") as f:
-    f.write(dashboard_code)
-
-with zipfile.ZipFile("/mnt/data/propwealthnext_dashboard_final.zip", "w") as zipf:
-    zipf.write("/mnt/data/dashboard.py", arcname="dashboard.py")
-
-"/mnt/data/propwealthnext_dashboard_final.zip"
