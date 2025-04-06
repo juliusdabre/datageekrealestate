@@ -60,8 +60,10 @@ if selected_sa3s:
     score_columns = ["Median Price", "12M Growth (%)", "Yield (%)", "Rent Change (%)", "Buy Affordability", "Rent Affordability", "10Y Growth (PA)"]
     filtered_df = df[df['SA3'].isin(selected_sa3s)].set_index("SA3")[score_columns]
 
-    fig, ax = plt.subplots(figsize=(10, len(selected_sa3s) * 0.5 + 2))
-    sns.heatmap(filtered_df, annot=True, fmt=".1f", cmap="coolwarm", linewidths=0.5, ax=ax)
+    fig, ax = plt.subplots(figsize=(12, len(filtered_df) * 0.6))
+    normalized_df = (filtered_df - filtered_df.min()) / (filtered_df.max() - filtered_df.min())
+    sns.heatmap(normalized_df, annot=filtered_df.round(1), fmt="", cmap="YlGnBu", linewidths=0.5, linecolor="white", ax=ax, cbar_kws={"label": "Normalized Score"})
+    plt.xticks(rotation=45, ha="right")
     plt.title("SA3 Comparison Heatmap")
     st.pyplot(fig)
 
