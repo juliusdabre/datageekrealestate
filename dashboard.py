@@ -27,7 +27,7 @@ yield_min = st.sidebar.slider("📈 Min Yield (%)", 0.0, 10.0, 0.0, 0.1)
 filtered_df_all = df[(df["Median Price"] >= price_range[0]) & (df["Median Price"] <= price_range[1]) & (df["Yield (%)"] >= yield_min)]
 
 # Sidebar for SA3 selection
-selected_sa3s = st.sidebar.multiselect("📍 Select SA3 Region(s)", filtered_df_all["SA3"].unique())
+selected_sa3s = st.sidebar.multiselect(" Select SA3 Region(s)", filtered_df_all["SA3"].unique())
 
 # Show KPIs only for the first selected SA3
 if selected_sa3s:
