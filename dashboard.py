@@ -2,8 +2,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import seaborn as sns
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 from fpdf import FPDF
 import os
 
@@ -19,12 +18,20 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# Sidebar filters
+st.sidebar.header("🔍 Filters")
+price_range = st.sidebar.slider("💰 Median Price Range", int(df["Median Price"].min()), int(df["Median Price"].max()), (int(df["Median Price"].min()), int(df["Median Price"].max())))
+yield_min = st.sidebar.slider("📈 Min Yield (%)", 0.0, 10.0, 0.0, 0.1)
+
+# Apply filters
+filtered_df_all = df[(df["Median Price"] >= price_range[0]) & (df["Median Price"] <= price_range[1]) & (df["Yield (%)"] >= yield_min)]
+
 # Sidebar for SA3 selection
-selected_sa3s = st.sidebar.multiselect("📍 Select SA3 Region(s)", df["SA3"].unique())
+selected_sa3s = st.sidebar.multiselect("📍 Select SA3 Region(s)", filtered_df_all["SA3"].unique())
 
 # Show KPIs only for the first selected SA3
 if selected_sa3s:
-    sa3 = df[df["SA3"] == selected_sa3s[0]].iloc[0]
+    sa3 = filtered_df_all[filtered_df_all["SA3"] == selected_sa3s[0]].iloc[0]
 
     # KPIs
     col1, col2, col3 = st.columns(3)
@@ -39,69 +46,75 @@ if selected_sa3s:
 
     st.metric("📈 10Y Growth (PA)", f"{sa3['10Y Growth (PA)']}%")
 
-# Map visualization
-st.subheader("🗺 SA3 Location Map")
-fig = px.scatter_map(
-    df,
-    lat="Latitude",
-    lon="Longitude",
-    hover_name="SA3",
-    size="Yield (%)",
-    color="12M Growth (%)",
-    color_continuous_scale="Viridis",
-    zoom=4,
-    height=500
-)
-st.plotly_chart(fig)
+# Tabs layout
+map_tab, chart_tab, download_tab = st.tabs(["🗺 Map View", "📊 Chart View", "📄 Reports & Data"])
 
-# Heatmap instead of Radar Chart
-if selected_sa3s:
-    st.subheader("🔥 Score Heatmap Comparison")
-    score_columns = ["Median Price", "12M Growth (%)", "Yield (%)", "Rent Change (%)", "Buy Affordability", "Rent Affordability", "10Y Growth (PA)"]
-    filtered_df = df[df['SA3'].isin(selected_sa3s)].set_index("SA3")[score_columns]
+with map_tab:
+    st.subheader("🗺 SA3 Location Map")
+    fig = px.scatter_map(
+        filtered_df_all,
+        lat="Latitude",
+        lon="Longitude",
+        hover_name="SA3",
+        size="Yield (%)",
+        color="12M Growth (%)",
+        color_continuous_scale="Viridis",
+        zoom=4,
+        height=500
+    )
+    st.plotly_chart(fig)
 
-    fig, ax = plt.subplots(figsize=(12, len(filtered_df) * 0.6))
-    normalized_df = (filtered_df - filtered_df.min()) / (filtered_df.max() - filtered_df.min())
-    sns.heatmap(normalized_df, annot=filtered_df.round(1), fmt="", cmap="YlGnBu", linewidths=0.5, linecolor="white", ax=ax, cbar_kws={"label": "Normalized Score"})
-    plt.xticks(rotation=45, ha="right")
-    plt.title("SA3 Comparison Heatmap")
-    st.pyplot(fig)
+with chart_tab:
+    if selected_sa3s:
+        st.subheader("📊 SA3 Score Comparison - Grouped Bar Chart")
+        score_columns = ["Median Price", "12M Growth (%)", "Yield (%)", "Rent Change (%)", "Buy Affordability", "Rent Affordability", "10Y Growth (PA)"]
+        filtered_df = filtered_df_all[filtered_df_all['SA3'].isin(selected_sa3s)][["SA3"] + score_columns]
 
-# PDF Report Generation
-if selected_sa3s:
-    def generate_pdf(sa3_data, filename):
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        pdf.set_text_color(40, 40, 40)
+        # Melt for bar chart
+        bar_df = filtered_df.melt(id_vars="SA3", value_vars=score_columns, var_name="Metric", value_name="Value")
 
-        # Add logo (optional)
-        logo_path = "propwealthnext_logo.png"
-        if os.path.exists(logo_path):
-            pdf.image(logo_path, x=10, y=8, w=30)
-            pdf.ln(20)
+        fig = px.bar(bar_df, x="Metric", y="Value", color="SA3", barmode="group",
+                     height=600, labels={"Value": "Score"}, title="SA3 Comparison")
+        fig.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig)
 
-        pdf.cell(200, 10, txt=f"PropwealthNext Report - {sa3_data['SA3']}", ln=True, align='C')
-        pdf.ln(10)
+        # Chart export button
+        st.download_button("📸 Download Chart as HTML", data=fig.to_html(), file_name="chart.html")
 
-        for col in score_columns:
-            pdf.cell(200, 10, txt=f"{col}: {sa3_data[col]}", ln=True)
+with download_tab:
+    if selected_sa3s:
+        def generate_pdf(sa3_data, filename):
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+            pdf.set_text_color(40, 40, 40)
 
-        pdf.output(filename)
+            # Add logo (optional)
+            logo_path = "propwealthnext_logo.png"
+            if os.path.exists(logo_path):
+                pdf.image(logo_path, x=10, y=8, w=30)
+                pdf.ln(20)
 
-    for sa3 in selected_sa3s:
-        row = df[df['SA3'] == sa3].iloc[0]
-        filename = f"report_{sa3.replace(' ', '_')}.pdf"
-        generate_pdf(row, filename)
-        with open(filename, "rb") as f:
-            st.download_button(
-                label=f"📄 Download PDF Report - {sa3}",
-                data=f,
-                file_name=filename,
-                mime="application/pdf"
-            )
-        os.remove(filename)
+            pdf.cell(200, 10, txt=f"PropwealthNext Report - {sa3_data['SA3']}", ln=True, align='C')
+            pdf.ln(10)
 
-# Download full data
-csv = df.to_csv(index=False)
-st.download_button("🗃 Download Full Dataset", csv, "sa3_investment_data.csv", "text/csv")
+            for col in score_columns:
+                pdf.cell(200, 10, txt=f"{col}: {sa3_data[col]}", ln=True)
+
+            pdf.output(filename)
+
+        for sa3 in selected_sa3s:
+            row = filtered_df_all[filtered_df_all['SA3'] == sa3].iloc[0]
+            filename = f"report_{sa3.replace(' ', '_')}.pdf"
+            generate_pdf(row, filename)
+            with open(filename, "rb") as f:
+                st.download_button(
+                    label=f"📄 Download PDF Report - {sa3}",
+                    data=f,
+                    file_name=filename,
+                    mime="application/pdf"
+                )
+            os.remove(filename)
+
+    csv = filtered_df_all.to_csv(index=False)
+    st.download_button("🗃 Download Filtered Dataset", csv, "sa3_investment_data.csv", "text/csv")
