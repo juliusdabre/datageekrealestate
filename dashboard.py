@@ -66,16 +66,34 @@ with map_tab:
 
 with chart_tab:
     if selected_sa3s:
-        st.subheader("📊 SA3 Score Comparison - Grouped Bar Chart")
+        st.subheader("📊 SA3 Score Comparison - Horizontal Grouped Bar Chart")
         score_columns = ["Median Price", "12M Growth (%)", "Yield (%)", "Rent Change (%)", "Buy Affordability", "Rent Affordability", "10Y Growth (PA)"]
         filtered_df = filtered_df_all[filtered_df_all['SA3'].isin(selected_sa3s)][["SA3"] + score_columns]
 
         # Melt for bar chart
         bar_df = filtered_df.melt(id_vars="SA3", value_vars=score_columns, var_name="Metric", value_name="Value")
 
-        fig = px.bar(bar_df, x="Metric", y="Value", color="SA3", barmode="group",
-                     height=600, labels={"Value": "Score"}, title="SA3 Comparison")
-        fig.update_layout(xaxis_tickangle=-45)
+        # Create grouped horizontal bar chart using Plotly Graph Objects
+        fig = go.Figure()
+        metrics = bar_df['Metric'].unique()
+        for sa3 in selected_sa3s:
+            values = bar_df[bar_df['SA3'] == sa3].set_index("Metric").loc[metrics, "Value"].tolist()
+            fig.add_trace(go.Bar(
+                y=metrics,
+                x=values,
+                name=sa3,
+                orientation='h',
+                text=values,
+                textposition='outside'
+            ))
+
+        fig.update_layout(
+            barmode='group',
+            title="SA3 Horizontal Bar Comparison",
+            xaxis_title="Value",
+            yaxis_title="Metric",
+            height=600
+        )
         st.plotly_chart(fig)
 
         # Chart export button
